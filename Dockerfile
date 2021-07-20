@@ -2,41 +2,37 @@
 #
 # docker build -t dvoros/hadoop .
 
-FROM centos:7
-MAINTAINER dvoros
+FROM ubuntu:20.04
+MAINTAINER bgmsg
 
 USER root
+ENV LANG en_US.UTF-8
+ENV TZ=SGT
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
-# install dev tools
-RUN yum clean all; \
-    rpm --rebuilddb; \
-    yum install -y curl which tar sudo openssh-server openssh-clients rsync
-# update libselinux. see https://github.com/sequenceiq/hadoop-docker/issues/14
-RUN yum update -y libselinux
+RUN apt-get update && apt-get install -y locales  \
+    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen && dpkg-reconfigure --frontend=noninteractive locales\
+    && apt-get install -y curl tar sudo lz4 openssh-server openssh-client rsync openjdk-8-jdk libssl-dev libisal-dev vim \
+    && rm -rf /var/lib/apt/lists/*
+ENV LANG en_US.utf8
 
 # passwordless ssh
 RUN ssh-keygen -q -N "" -t dsa -f /etc/ssh/ssh_host_dsa_key
-RUN ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key
+RUN yes y| ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key
 RUN ssh-keygen -q -N "" -t rsa -f /root/.ssh/id_rsa
 RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys
 
 
 # java
-RUN curl -LO 'http://download.oracle.com/otn-pub/java/jdk/8u191-b12/2787e4a523244c269598db4e85c51e0c/jdk-8u191-linux-x64.rpm' -H 'Cookie: oraclelicense=accept-securebackup-cookie'
-RUN rpm -i jdk-8u191-linux-x64.rpm
-RUN rm jdk-8u191-linux-x64.rpm
 
-ENV JAVA_HOME /usr/java/default
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 ENV PATH $PATH:$JAVA_HOME/bin
-RUN rm /usr/bin/java && ln -s $JAVA_HOME/bin/java /usr/bin/java
 
-# download native support
-RUN mkdir -p /tmp/native
-RUN curl -L https://github.com/dvoros/docker-hadoop-build/releases/download/v3.1.1/hadoop-native-64-3.1.1.tgz | tar -xz -C /tmp/native
 
 # hadoop
-RUN curl -sk https://www.eu.apache.org/dist/hadoop/common/hadoop-3.1.1/hadoop-3.1.1.tar.gz | tar -xz -C /usr/local/
-RUN cd /usr/local && ln -s ./hadoop-3.1.1 hadoop
+RUN curl -sk https://downloads.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz| tar -xz -C /usr/local/
+RUN cd /usr/local && ln -s ./hadoop-3.3.1 hadoop
 
 ENV HADOOP_HOME /usr/local/hadoop
 ENV HDFS_NAMENODE_USER root
@@ -49,7 +45,8 @@ ENV HADOOP_HDFS_HOME $HADOOP_HOME
 ENV HADOOP_MAPRED_HOME $HADOOP_HOME
 ENV HADOOP_YARN_HOME $HADOOP_HOME
 ENV HADOOP_CONF_DIR /usr/local/hadoop/etc/hadoop
-
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/hadoop/lib
+ENV LIBPATH $LIBPATH:/usr/local/hadoop/lib
 
 RUN echo "JAVA_HOME=$JAVA_HOME" >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
 RUN echo "HADOOP_HOME=$HADOOP_HOME" >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
@@ -65,8 +62,8 @@ ADD mapred-site.xml $HADOOP_HOME/etc/hadoop/mapred-site.xml
 ADD yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml
 
 # fixing the libhadoop.so like a boss
-RUN rm -rf /usr/local/hadoop/lib/native
-RUN mv /tmp/native /usr/local/hadoop/lib
+#RUN rm -rf /usr/local/hadoop/lib/native
+#RUN mv /tmp/native /usr/local/hadoop/lib
 
 ADD ssh_config /root/.ssh/config
 RUN chmod 600 /root/.ssh/config
@@ -81,6 +78,7 @@ RUN ls -la /usr/local/hadoop/etc/hadoop/*-env.sh
 RUN sed  -i "/^[^#]*UsePAM/ s/.*/#&/"  /etc/ssh/sshd_config
 RUN echo "UsePAM no" >> /etc/ssh/sshd_config
 RUN echo "Port 2122" >> /etc/ssh/sshd_config
+RUN mkdir /run/sshd && service ssh start
 
 # Make Hadoop executables available on PATH
 ENV PATH $PATH:$HADOOP_HOME/bin
@@ -94,6 +92,7 @@ RUN chown -R root:root /etc/docker-startup
 RUN chmod -R 700 /etc/docker-startup
 
 # This creates initial directories, only run this during image building
+
 RUN /etc/docker-startup/init.sh
 
 # Downstream images can use this too start Hadoop services

@@ -1,7 +1,7 @@
 # Apache Hadoop Docker image
 
-[![DockerPulls](https://img.shields.io/docker/pulls/dvoros/hadoop.svg)](https://registry.hub.docker.com/u/dvoros/hadoop/)
-[![DockerStars](https://img.shields.io/docker/stars/dvoros/hadoop.svg)](https://registry.hub.docker.com/u/dvoros/hadoop/)
+[![DockerPulls](https://img.shields.io/docker/pulls/dvoros/hadoop.svg)](https://registry.hub.docker.com/u/bgmsg/hadoop-docker/)
+[![DockerStars](https://img.shields.io/docker/stars/dvoros/hadoop.svg)](https://registry.hub.docker.com/u/bgmsg/hadoop-docker/)
 
 _Note: this is the master branch - for a particular Hadoop version always check the related branch_
 
@@ -10,7 +10,7 @@ _Note: this is the master branch - for a particular Hadoop version always check 
 If you'd like to try directly from the Dockerfile you can build the image as:
 
 ```
-docker build -t dvoros/hadoop:latest .
+docker build -t bgmsg/hadoop-docker:3.3.1 .
 ```
 
 # Pull the image
@@ -18,7 +18,7 @@ docker build -t dvoros/hadoop:latest .
 The image is also released as an official Docker image from Docker's automated build repository - you can always pull or refer the image when launching containers.
 
 ```
-docker pull dvoros/hadoop:latest
+docker pull bgmsg/hadoop-docker:3.3.1
 ```
 
 # Start a container
@@ -28,7 +28,7 @@ In order to use the Docker image you have just build or pulled use:
 **Make sure that SELinux is disabled on the host. If you are using boot2docker you don't need to do anything.**
 
 ```
-docker run -it dvoros/hadoop:latest /etc/bootstrap.sh -bash
+docker run -it bgmsgg/hadoop-docker:3.3.1 /etc/docker-startup/entrypoint.sh -bash
 ```
 
 ## Testing
@@ -44,5 +44,15 @@ hdfs dfs -cat output/*
 ```
 
 ## Hadoop native libraries, build
-
-The Hadoop build process is no easy task - requires lots of libraries and their right version, protobuf, etc and takes some time - we have simplified all these, made the build and released a 64b version of Hadoop nativelibs [here](https://github.com/dvoros/docker-hadoop-build/releases). (These are automatically pulled during the build of this image.)
+Native build is taken from apache, Below is the oputput
+2021-07-20 06:05:45,539 INFO bzip2.Bzip2Factory: Successfully loaded & initialized native-bzip2 library system-native
+2021-07-20 06:05:45,542 INFO zlib.ZlibFactory: Successfully loaded & initialized native-zlib library
+2021-07-20 06:05:45,580 INFO nativeio.NativeIO: The native code was built without PMDK support.
+Native library checking:
+hadoop:  true /usr/local/hadoop-3.3.1/lib/native/libhadoop.so.1.0.0
+zlib:    true /lib/x86_64-linux-gnu/libz.so.1
+zstd  :  true /lib/x86_64-linux-gnu/libzstd.so.1
+bzip2:   true /lib/x86_64-linux-gnu/libbz2.so.1
+openssl: true /lib/x86_64-linux-gnu/libcrypto.so
+ISA-L:   true /lib/x86_64-linux-gnu/libisal.so.2
+PMDK:    false The native code was built without PMDK support.
